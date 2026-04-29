@@ -1,0 +1,75 @@
+<!doctype html>
+
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LazySVG - SVG Editor</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .sidebar button:hover {
+    background: #555;
+  }
+
+  /* Workspace */
+  .workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Canvas area */
+  .canvas-container {
+    flex: 1;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #ccc;
+  }
+
+  svg {
+    background: #fafafa;
+    cursor: crosshair;
+  }
+
+  /* Code output */
+  .code-output {
+    height: 180px;
+    background: #111;
+    color: #0f0;
+    font-family: monospace;
+    padding: 10px;
+    overflow: auto;
+    white-space: pre;
+  }
+
+  /* Header */
+  .header {
+    background: #222;
+    color: white;
+    padding: 10px 15px;
+    font-size: 14px;
+    border-bottom: 1px solid #444;
+  }
+</style>
+
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+<!-- Если используешь Vite / React -->
+<script type="module" src="/src/main.jsx"></script>
+
+  </body>
+</html>
