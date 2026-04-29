@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Canvas from "./components/Canvas";
 import Toolbar from "./components/Toolbar";
 import BezierControls from "./components/BezierControls";
@@ -13,8 +13,94 @@ export default function App() {
   const [draggingPoint, setDraggingPoint] = useState(null);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [mousePos, setMousePos] = useState(null);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  const [isAltPressed, setIsAltPressed] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [copySuccess, setCopySuccess] = useState({ svg: false, html: false });
+  const lastUpdateRef = useRef(0);
+
+  // Функции для работы с историей
+  const saveToHistory = (newPoints, newSegments) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ points: [...newPoints], segments: [...newSegments] });
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const prevState = history[historyIndex - 1];
+      setPoints(prevState.points);
+      setSegments(prevState.segments);
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  // Обработчики клавиш
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        setIsCtrlPressed(true);
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+        }
+      }
+      if (e.altKey) {
+        setIsAltPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setIsCtrlPressed(false);
+      }
+      if (!e.altKey) {
+        setIsAltPressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [historyIndex, history]);
 
   const handleAddPoint = (point) => {
+    let finalPoint = point;
+
+    // Выравнивание по осям при удержании Ctrl в режиме линии
+    if (mode === "line" && isCtrlPressed && points.length > 0) {
+      const lastPoint = points[points.length - 1];
+      const dx = point.x - lastPoint.x;
+      const dy = point.y - lastPoint.y;
+      const angle = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
+
+      if (angle <= 22.5 || angle >= 157.5) {
+        // Выравнивание по горизонтали
+        finalPoint = { x: point.x, y: lastPoint.y };
+      } else if (angle >= 67.5 && angle <= 112.5) {
+        // Выравнивание по вертикали
+        finalPoint = { x: lastPoint.x, y: point.y };
+      } else {
+        // Диагональ (45 градусов)
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        const distance = Math.min(absDx, absDy);
+        const signX = dx > 0 ? 1 : -1;
+        const signY = dy > 0 ? 1 : -1;
+        finalPoint = {
+          x: lastPoint.x + distance * signX,
+          y: lastPoint.y + distance * signY
+        };
+      }
+    }
+
     if (points.length > 0) {
       const prevPoint = points[points.length - 1];
       const newSegment = {
@@ -25,8 +111,8 @@ export default function App() {
       
       // For Bezier mode, we automatically create control points
       if (mode === "bezier") {
-        const dx = point.x - prevPoint.x;
-        const dy = point.y - prevPoint.y;
+        const dx = finalPoint.x - prevPoint.x;
+        const dy = finalPoint.y - prevPoint.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const controlDistance = distance / 3;
         
@@ -35,18 +121,51 @@ export default function App() {
           y: prevPoint.y,
         };
         newSegment.cp2 = {
-          x: point.x - controlDistance,
-          y: point.y,
+          x: finalPoint.x - controlDistance,
+          y: finalPoint.y,
         };
       }
       
       setSegments((prev) => [...prev, newSegment]);
     }
-    setPoints((prev) => [...prev, point]);
+    
+    const newPoints = [...points, finalPoint];
+    const newSegments = [...segments];
+    if (points.length > 0) {
+      const prevPoint = points[points.length - 1];
+      const newSegment = {
+        type: mode,
+        cp1: null,
+        cp2: null,
+      };
+      
+      if (mode === "bezier") {
+        const dx = finalPoint.x - prevPoint.x;
+        const dy = finalPoint.y - prevPoint.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const controlDistance = distance / 3;
+        
+        newSegment.cp1 = {
+          x: prevPoint.x + controlDistance,
+          y: prevPoint.y,
+        };
+        newSegment.cp2 = {
+          x: finalPoint.x - controlDistance,
+          y: finalPoint.y,
+        };
+      }
+      
+      newSegments.push(newSegment);
+    }
+    
+    setPoints(newPoints);
+    setSegments(newSegments);
+    saveToHistory(newPoints, newSegments);
   };
 
   const handleMouseDown = (e, pointIndex) => {
     setDraggingPoint(pointIndex);
+    setIsMouseDown(true);
   };
 
   const handleMouseMove = (e) => {
@@ -57,20 +176,26 @@ export default function App() {
     setMousePos({ x, y });
     
     if (draggingPoint !== null) {
-      setPoints((prev) =>
-        prev.map((p, i) =>
-          i === draggingPoint ? { x, y } : p
-        )
-      );
+      const now = Date.now();
+      if (now - lastUpdateRef.current > 16) { // ~60fps
+        setPoints((prev) =>
+          prev.map((p, i) =>
+            i === draggingPoint ? { x, y } : p
+          )
+        );
+        lastUpdateRef.current = now;
+      }
     }
   };
 
   const handleMouseUp = () => {
     setDraggingPoint(null);
+    setIsMouseDown(false);
   };
   
   const handleMouseLeave = () => {
     setDraggingPoint(null);
+    setIsMouseDown(false);
     setMousePos(null);
   };
 
@@ -84,10 +209,33 @@ export default function App() {
     );
   };
 
+  const handleCopySVG = async () => {
+    try {
+      await navigator.clipboard.writeText(svgCode);
+      setCopySuccess(prev => ({ ...prev, svg: true }));
+      setTimeout(() => setCopySuccess(prev => ({ ...prev, svg: false })), 2000);
+    } catch (err) {
+      console.error('Failed to copy SVG:', err);
+    }
+  };
+
+  const handleCopyHTML = async () => {
+    try {
+      await navigator.clipboard.writeText(htmlCode);
+      setCopySuccess(prev => ({ ...prev, html: true }));
+      setTimeout(() => setCopySuccess(prev => ({ ...prev, html: false })), 2000);
+    } catch (err) {
+      console.error('Failed to copy HTML:', err);
+    }
+  };
+
   const handleClearCanvas = () => {
     if (window.confirm("Вы уверены? Это удалит все точки.")) {
-      setPoints([]);
-      setSegments([]);
+      const newPoints = [];
+      const newSegments = [];
+      setPoints(newPoints);
+      setSegments(newSegments);
+      saveToHistory(newPoints, newSegments);
     }
   };
 
@@ -128,10 +276,14 @@ export default function App() {
             segments={segments}
             mode={mode}
             mousePos={mousePos}
+            isCtrlPressed={isCtrlPressed}
+            isAltPressed={isAltPressed}
+            isMouseDown={isMouseDown}
             onAddPoint={handleAddPoint}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onUpdateSegment={handleUpdateSegment}
             draggingPoint={draggingPoint}
           >
             {points.map((p, i) => (
@@ -162,16 +314,16 @@ export default function App() {
 
           <div className="export-buttons">
             <button
-              onClick={() => navigator.clipboard.writeText(svgCode)}
-              className="copy-btn"
+              onClick={handleCopySVG}
+              className={`copy-btn ${copySuccess.svg ? 'success' : ''}`}
             >
-              Копировать SVG
+              {copySuccess.svg ? '✅' : '📋'} Копировать SVG
             </button>
             <button
-              onClick={() => navigator.clipboard.writeText(htmlCode)}
-              className="copy-btn"
+              onClick={handleCopyHTML}
+              className={`copy-btn ${copySuccess.html ? 'success' : ''}`}
             >
-              Копировать HTML
+              {copySuccess.html ? '✅' : '📋'} Копировать HTML
             </button>
           </div>
         </div>

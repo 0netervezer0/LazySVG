@@ -1,3 +1,4 @@
+import React, { useRef } from "react";
 import { generatePath } from "../utils/pathGenerator";
 
 // Функция для рисования стрелки
@@ -22,8 +23,15 @@ export default function Canvas({
   onMouseUp,
   onMouseLeave,
   draggingPoint,
+  isCtrlPressed,
+  isAltPressed,
+  isMouseDown,
+  onUpdateSegment,
   children,
 }) {
+  const [draggingControlPoint, setDraggingControlPoint] = React.useState(null);
+  const [selectedSegment, setSelectedSegment] = React.useState(null);
+  const lastUpdateRef = useRef(0);
   const handleClick = (e) => {
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
@@ -44,6 +52,48 @@ export default function Canvas({
     }
   };
 
+  const handleControlPointMouseDown = (e, segmentIndex, controlPointType) => {
+    e.stopPropagation();
+    setDraggingControlPoint({ segmentIndex, type: controlPointType });
+    setSelectedSegment(segmentIndex);
+  };
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    
+    onMouseMove(e);
+    
+    // Обработка перетаскивания контрольных точек Безье
+    if (draggingControlPoint && mode === "bezier") {
+      const now = Date.now();
+      if (now - lastUpdateRef.current > 16) {
+        const { segmentIndex, type } = draggingControlPoint;
+        const segment = segments[segmentIndex];
+        
+        if (segment) {
+          let newCp1 = segment.cp1;
+          let newCp2 = segment.cp2;
+          
+          if (type === 'cp1') {
+            newCp1 = { x, y };
+          } else if (type === 'cp2') {
+            newCp2 = { x, y };
+          }
+          
+          onUpdateSegment(segmentIndex, newCp1, newCp2);
+        }
+        lastUpdateRef.current = now;
+      }
+    }
+  };
+
+  const handleMouseUp = (e) => {
+    setDraggingControlPoint(null);
+    onMouseUp(e);
+  };
+
   const d = generatePath(points, segments);
 
   return (
@@ -51,9 +101,12 @@ export default function Canvas({
       width="600"
       height="400"
       onClick={handleClick}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={(e) => {
+        setDraggingControlPoint(null);
+        onMouseLeave(e);
+      }}
       className="canvas-svg"
     >
       {/* Сетка фона */}
@@ -169,16 +222,22 @@ export default function Canvas({
               <circle
                 cx={segment.cp1.x}
                 cy={segment.cp1.y}
-                r="3"
+                r="4"
                 fill="#00aa00"
+                className="control-point"
+                onMouseDown={(e) => handleControlPointMouseDown(e, i, 'cp1')}
+                style={{ cursor: 'grab' }}
               />
             )}
             {segment.cp2 && (
               <circle
                 cx={segment.cp2.x}
                 cy={segment.cp2.y}
-                r="3"
+                r="4"
                 fill="#0000aa"
+                className="control-point"
+                onMouseDown={(e) => handleControlPointMouseDown(e, i, 'cp2')}
+                style={{ cursor: 'grab' }}
               />
             )}
           </g>
@@ -188,39 +247,93 @@ export default function Canvas({
       {/* Превью линии при наведении мыши в режиме Линия */}
       {mode === "line" && points.length > 0 && mousePos && (
         <g opacity="0.5">
-          <line
-            x1={points[points.length - 1].x}
-            y1={points[points.length - 1].y}
-            x2={mousePos.x}
-            y2={mousePos.y}
-            stroke="#0099ff"
-            strokeWidth="2"
-            strokeDasharray="6"
-            pointerEvents="none"
-          />
-          <circle
-            cx={mousePos.x}
-            cy={mousePos.y}
-            r="4"
-            fill="#0099ff"
-            pointerEvents="none"
-          />
+          {(() => {
+            const lastPoint = points[points.length - 1];
+            let previewPoint = mousePos;
+            
+            // Выравнивание по осям при удержании Ctrl
+            if (isCtrlPressed) {
+              const dx = mousePos.x - lastPoint.x;
+              const dy = mousePos.y - lastPoint.y;
+              const angle = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
+
+              if (angle <= 22.5 || angle >= 157.5) {
+                // Выравнивание по горизонтали
+                previewPoint = { x: mousePos.x, y: lastPoint.y };
+              } else if (angle >= 67.5 && angle <= 112.5) {
+                // Выравнивание по вертикали
+                previewPoint = { x: lastPoint.x, y: mousePos.y };
+              } else {
+                // Диагональ (45 градусов)
+                const absDx = Math.abs(dx);
+                const absDy = Math.abs(dy);
+                const distance = Math.min(absDx, absDy);
+                const signX = dx > 0 ? 1 : -1;
+                const signY = dy > 0 ? 1 : -1;
+                previewPoint = {
+                  x: lastPoint.x + distance * signX,
+                  y: lastPoint.y + distance * signY
+                };
+              }
+            }
+            
+            return (
+              <>
+                <line
+                  x1={lastPoint.x}
+                  y1={lastPoint.y}
+                  x2={previewPoint.x}
+                  y2={previewPoint.y}
+                  stroke={isCtrlPressed ? "#ff6b6b" : "#0099ff"}
+                  strokeWidth="2"
+                  strokeDasharray="6"
+                  pointerEvents="none"
+                />
+                <circle
+                  cx={previewPoint.x}
+                  cy={previewPoint.y}
+                  r="4"
+                  fill={isCtrlPressed ? "#ff6b6b" : "#0099ff"}
+                  pointerEvents="none"
+                />
+              </>
+            );
+          })()}
         </g>
       )}
 
-      {/* Превью для Безье (тонкая линия) */}
+      {/* Превью для Безье (кривая) */}
       {mode === "bezier" && points.length > 0 && mousePos && (
         <g opacity="0.3">
-          <line
-            x1={points[points.length - 1].x}
-            y1={points[points.length - 1].y}
-            x2={mousePos.x}
-            y2={mousePos.y}
-            stroke="#00cc00"
-            strokeWidth="1"
-            strokeDasharray="4"
-            pointerEvents="none"
-          />
+          {(() => {
+            const lastPoint = points[points.length - 1];
+            const dx = mousePos.x - lastPoint.x;
+            const dy = mousePos.y - lastPoint.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const controlDistance = distance / 3;
+            
+            const tempCp1 = {
+              x: lastPoint.x + controlDistance,
+              y: lastPoint.y,
+            };
+            const tempCp2 = {
+              x: mousePos.x - controlDistance,
+              y: mousePos.y,
+            };
+            
+            const tempPath = `M ${lastPoint.x} ${lastPoint.y} C ${tempCp1.x} ${tempCp1.y} ${tempCp2.x} ${tempCp2.y} ${mousePos.x} ${mousePos.y}`;
+            
+            return (
+              <path
+                d={tempPath}
+                stroke="#00cc00"
+                strokeWidth="1"
+                strokeDasharray="4"
+                fill="none"
+                pointerEvents="none"
+              />
+            );
+          })()}
         </g>
       )}
 

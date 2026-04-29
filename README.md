@@ -5,11 +5,13 @@ A simple web tool for creating vector shapes with support for Bézier curves.
 
 ## ✨ Features
 
-- **Line Mode** - Create shapes from straight lines
-- **Bezier Mode** - Create smooth curves with automatic control points
-- **Visualization** - Visible points and control points on the canvas
-- **Grid** - Background grid for easy positioning
-- **Export** - Copy SVG and HTML code for use in projects
+- **Line Mode** - Create shapes from straight lines with alignment (Ctrl)
+- **Bezier Mode** - Create smooth curves with interactive control points
+- **Visualization** - Visible points, control points and direction arrows
+- **Preview** - Show future line/curve when hovering mouse
+- **Alignment** - Ctrl for x/y axis or diagonal alignment
+- **History** - Ctrl+Z to undo last action
+- **Export** - Copy SVG and HTML code with visual confirmation
 - **Interactive Canvas** - Add points with a simple click
 
 ## 🚀 Quick Start
@@ -31,12 +33,25 @@ npm run dev
 
 ### Line mode
 - Creates sharp angles between points
+- **Ctrl alignment**: Hold Ctrl while hovering to align to x-axis, y-axis, or diagonal
 - Ideal for simple geometric shapes
 
 ### Bezier mode
 - Automatically creates control points for smooth curves
 - Visually displays control points (blue and green circles)
+- Shows direction arrows (red arrows)
+- **Interactive editing**: Click and drag control points to modify curves
 - Best for organic shapes and smooth curves
+
+### Keyboard Shortcuts
+- **Ctrl+Z** - Undo last action
+- **Ctrl** (Line mode) - Enable axis/diagonal alignment
+- **Alt** (Bezier mode) - Additional curve manipulation
+
+### Visual Feedback
+- **Preview lines**: Dashed lines show where the next point will be placed
+- **Alignment preview**: Red preview when Ctrl is held in Line mode
+- **Copy confirmation**: Buttons show ✅ when code is copied to clipboard
 
 ### Export
 1. Copy the SVG code from the "SVG Code" section
