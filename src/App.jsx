@@ -12,6 +12,7 @@ export default function App() {
   const [mode, setMode] = useState("line");
   const [draggingPoint, setDraggingPoint] = useState(null);
   const [selectedSegment, setSelectedSegment] = useState(null);
+  const [mousePos, setMousePos] = useState(null);
 
   const handleAddPoint = (point) => {
     if (points.length > 0) {
@@ -49,14 +50,16 @@ export default function App() {
   };
 
   const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    
+    setMousePos({ x, y });
+    
     if (draggingPoint !== null) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const newX = e.clientX - rect.left;
-      const newY = e.clientY - rect.top;
-
       setPoints((prev) =>
         prev.map((p, i) =>
-          i === draggingPoint ? { x: newX, y: newY } : p
+          i === draggingPoint ? { x, y } : p
         )
       );
     }
@@ -64,6 +67,11 @@ export default function App() {
 
   const handleMouseUp = () => {
     setDraggingPoint(null);
+  };
+  
+  const handleMouseLeave = () => {
+    setDraggingPoint(null);
+    setMousePos(null);
   };
 
   const handleUpdateSegment = (segmentIndex, cp1, cp2) => {
@@ -118,9 +126,12 @@ export default function App() {
           <Canvas
             points={points}
             segments={segments}
+            mode={mode}
+            mousePos={mousePos}
             onAddPoint={handleAddPoint}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
             draggingPoint={draggingPoint}
           >
             {points.map((p, i) => (
