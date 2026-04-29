@@ -1,4 +1,5 @@
 # 🎨 LazySVG - Interactive SVG Editor
+[Доступно на Русском 🇷🇺](README-RU.md)
 
 A simple web tool for creating vector shapes with support for Bézier curves.
 
