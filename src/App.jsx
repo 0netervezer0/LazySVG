@@ -23,7 +23,7 @@ export default function App() {
         cp2: null,
       };
       
-      // Для режима Безье автоматически создаём контрольные точки
+      // For Bezier mode, we automatically create control points
       if (mode === "bezier") {
         const dx = point.x - prevPoint.x;
         const dy = point.y - prevPoint.y;
