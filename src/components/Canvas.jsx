@@ -18,24 +18,71 @@ export default function Canvas({
   segments,
   mode,
   mousePos,
+  viewBox,
+  zoomLevel,
   onAddPoint,
   onMouseMove,
   onMouseUp,
   onMouseLeave,
+  onZoom,
+  onPan,
+  onResetZoom,
+  onZoomIn,
+  onZoomOut,
   draggingPoint,
   isCtrlPressed,
-  isAltPressed,
   isMouseDown,
   onUpdateSegment,
   children,
 }) {
+  const svgRef = useRef(null);
   const [draggingControlPoint, setDraggingControlPoint] = React.useState(null);
   const [selectedSegment, setSelectedSegment] = React.useState(null);
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [panStart, setPanStart] = React.useState(null);
   const lastUpdateRef = useRef(0);
+
+  const toViewCoords = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * viewBox.width + viewBox.x;
+    const y = ((e.clientY - rect.top) / rect.height) * viewBox.height + viewBox.y;
+    return { x: Math.round(x), y: Math.round(y) };
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const point = toViewCoords(e);
+    onZoom(e.deltaY, point);
+  };
+
+  React.useEffect(() => {
+    const node = svgRef.current;
+    if (!node) return;
+
+    const listener = (e) => {
+      e.preventDefault();
+      handleWheel(e);
+    };
+
+    node.addEventListener('wheel', listener, { passive: false });
+    return () => node.removeEventListener('wheel', listener, { passive: false });
+  }, [viewBox]);
+
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({
+        clientX: e.clientX,
+        clientY: e.clientY,
+        viewBox,
+      });
+    }
+  };
+
   const handleClick = (e) => {
     const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    
+
     if (
       e.target === svg ||
       e.target.tagName === "svg" ||
@@ -44,10 +91,11 @@ export default function Canvas({
       e.target.tagName === "pattern" ||
       e.target.id === "grid"
     ) {
-      const point = {
-        x: Math.round(e.clientX - rect.left),
-        y: Math.round(e.clientY - rect.top),
-      };
+      if (e.button !== 0) {
+        return;
+      }
+
+      const point = toViewCoords(e);
       onAddPoint(point);
     }
   };
@@ -59,11 +107,20 @@ export default function Canvas({
   };
 
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
-    
-    onMouseMove(e);
+    if (isPanning && panStart) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const deltaX = e.clientX - panStart.clientX;
+      const deltaY = e.clientY - panStart.clientY;
+      const xOffset = (deltaX / rect.width) * panStart.viewBox.width;
+      const yOffset = (deltaY / rect.height) * panStart.viewBox.height;
+      const nextX = panStart.viewBox.x - xOffset;
+      const nextY = panStart.viewBox.y - yOffset;
+      onPan(nextX, nextY);
+      return;
+    }
+
+    const svgPoint = toViewCoords(e);
+    onMouseMove(svgPoint);
     
     // Обработка перетаскивания контрольных точек Безье
     if (draggingControlPoint && mode === "bezier") {
@@ -77,9 +134,9 @@ export default function Canvas({
           let newCp2 = segment.cp2;
           
           if (type === 'cp1') {
-            newCp1 = { x, y };
+            newCp1 = { x: svgPoint.x, y: svgPoint.y };
           } else if (type === 'cp2') {
-            newCp2 = { x, y };
+            newCp2 = { x: svgPoint.x, y: svgPoint.y };
           }
           
           onUpdateSegment(segmentIndex, newCp1, newCp2);
@@ -91,24 +148,32 @@ export default function Canvas({
 
   const handleMouseUp = (e) => {
     setDraggingControlPoint(null);
+    setIsPanning(false);
+    setPanStart(null);
     onMouseUp(e);
   };
 
   const d = generatePath(points, segments);
 
   return (
-    <svg
-      width="600"
-      height="400"
-      onClick={handleClick}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={(e) => {
-        setDraggingControlPoint(null);
-        onMouseLeave(e);
-      }}
-      className="canvas-svg"
-    >
+    <div className="canvas-inner">
+      <svg
+        ref={svgRef}
+        width="600"
+        height="400"
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={(e) => {
+          setDraggingControlPoint(null);
+          setIsPanning(false);
+          setPanStart(null);
+          onMouseLeave(e);
+        }}
+        className="canvas-svg"
+      >
       {/* Сетка фона */}
       <defs>
         <pattern
@@ -251,20 +316,16 @@ export default function Canvas({
             const lastPoint = points[points.length - 1];
             let previewPoint = mousePos;
             
-            // Выравнивание по осям при удержании Ctrl
             if (isCtrlPressed) {
               const dx = mousePos.x - lastPoint.x;
               const dy = mousePos.y - lastPoint.y;
               const angle = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
 
               if (angle <= 22.5 || angle >= 157.5) {
-                // Выравнивание по горизонтали
                 previewPoint = { x: mousePos.x, y: lastPoint.y };
               } else if (angle >= 67.5 && angle <= 112.5) {
-                // Выравнивание по вертикали
                 previewPoint = { x: lastPoint.x, y: mousePos.y };
               } else {
-                // Диагональ (45 градусов)
                 const absDx = Math.abs(dx);
                 const absDy = Math.abs(dy);
                 const distance = Math.min(absDx, absDy);
@@ -339,6 +400,15 @@ export default function Canvas({
 
       {/* Основные точки */}
       {children}
-    </svg>
+      </svg>
+      <div className="canvas-overlay">
+        <div className="zoom-status">{Math.round(zoomLevel * 100)}%</div>
+        <div className="zoom-buttons">
+          <button type="button" onClick={onZoomIn} className="zoom-btn" aria-label="Zoom in">+</button>
+          <button type="button" onClick={onZoomOut} className="zoom-btn" aria-label="Zoom out">−</button>
+          <button type="button" onClick={onResetZoom} className="zoom-btn reset-btn" aria-label="Reset zoom">⟳</button>
+        </div>
+      </div>
+    </div>
   );
 }

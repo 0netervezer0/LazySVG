@@ -14,12 +14,16 @@ export default function App() {
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [mousePos, setMousePos] = useState(null);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
-  const [isAltPressed, setIsAltPressed] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copySuccess, setCopySuccess] = useState({ svg: false, html: false });
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 600, height: 400 });
   const lastUpdateRef = useRef(0);
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 4;
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
   // Функции для работы с историей
   const saveToHistory = (newPoints, newSegments) => {
@@ -48,17 +52,11 @@ export default function App() {
           undo();
         }
       }
-      if (e.altKey) {
-        setIsAltPressed(true);
-      }
     };
 
     const handleKeyUp = (e) => {
       if (!e.ctrlKey && !e.metaKey) {
         setIsCtrlPressed(false);
-      }
-      if (!e.altKey) {
-        setIsAltPressed(false);
       }
     };
 
@@ -73,62 +71,33 @@ export default function App() {
 
   const handleAddPoint = (point) => {
     let finalPoint = point;
+    const ctrlPressed = isCtrlPressed;
 
-    // Выравнивание по осям при удержании Ctrl в режиме линии
-    if (mode === "line" && isCtrlPressed && points.length > 0) {
+    if (mode === "line" && points.length > 0) {
       const lastPoint = points[points.length - 1];
       const dx = point.x - lastPoint.x;
       const dy = point.y - lastPoint.y;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
       const angle = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
 
-      if (angle <= 22.5 || angle >= 157.5) {
-        // Выравнивание по горизонтали
-        finalPoint = { x: point.x, y: lastPoint.y };
-      } else if (angle >= 67.5 && angle <= 112.5) {
-        // Выравнивание по вертикали
-        finalPoint = { x: lastPoint.x, y: point.y };
-      } else {
-        // Диагональ (45 градусов)
-        const absDx = Math.abs(dx);
-        const absDy = Math.abs(dy);
-        const distance = Math.min(absDx, absDy);
-        const signX = dx > 0 ? 1 : -1;
-        const signY = dy > 0 ? 1 : -1;
-        finalPoint = {
-          x: lastPoint.x + distance * signX,
-          y: lastPoint.y + distance * signY
-        };
+      if (ctrlPressed) {
+        if (angle <= 22.5 || angle >= 157.5) {
+          finalPoint = { x: point.x, y: lastPoint.y };
+        } else if (angle >= 67.5 && angle <= 112.5) {
+          finalPoint = { x: lastPoint.x, y: point.y };
+        } else {
+          const distance = Math.min(absDx, absDy);
+          const signX = dx > 0 ? 1 : -1;
+          const signY = dy > 0 ? 1 : -1;
+          finalPoint = {
+            x: lastPoint.x + distance * signX,
+            y: lastPoint.y + distance * signY,
+          };
+        }
       }
     }
 
-    if (points.length > 0) {
-      const prevPoint = points[points.length - 1];
-      const newSegment = {
-        type: mode,
-        cp1: null,
-        cp2: null,
-      };
-      
-      // For Bezier mode, we automatically create control points
-      if (mode === "bezier") {
-        const dx = finalPoint.x - prevPoint.x;
-        const dy = finalPoint.y - prevPoint.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const controlDistance = distance / 3;
-        
-        newSegment.cp1 = {
-          x: prevPoint.x + controlDistance,
-          y: prevPoint.y,
-        };
-        newSegment.cp2 = {
-          x: finalPoint.x - controlDistance,
-          y: finalPoint.y,
-        };
-      }
-      
-      setSegments((prev) => [...prev, newSegment]);
-    }
-    
     const newPoints = [...points, finalPoint];
     const newSegments = [...segments];
     if (points.length > 0) {
@@ -138,13 +107,13 @@ export default function App() {
         cp1: null,
         cp2: null,
       };
-      
+
       if (mode === "bezier") {
         const dx = finalPoint.x - prevPoint.x;
         const dy = finalPoint.y - prevPoint.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const controlDistance = distance / 3;
-        
+
         newSegment.cp1 = {
           x: prevPoint.x + controlDistance,
           y: prevPoint.y,
@@ -154,10 +123,10 @@ export default function App() {
           y: finalPoint.y,
         };
       }
-      
+
       newSegments.push(newSegment);
     }
-    
+
     setPoints(newPoints);
     setSegments(newSegments);
     saveToHistory(newPoints, newSegments);
@@ -168,19 +137,15 @@ export default function App() {
     setIsMouseDown(true);
   };
 
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
-    
-    setMousePos({ x, y });
-    
+  const handleMouseMove = (point) => {
+    setMousePos(point);
+
     if (draggingPoint !== null) {
       const now = Date.now();
       if (now - lastUpdateRef.current > 16) { // ~60fps
         setPoints((prev) =>
           prev.map((p, i) =>
-            i === draggingPoint ? { x, y } : p
+            i === draggingPoint ? { x: point.x, y: point.y } : p
           )
         );
         lastUpdateRef.current = now;
@@ -197,6 +162,55 @@ export default function App() {
     setDraggingPoint(null);
     setIsMouseDown(false);
     setMousePos(null);
+  };
+
+  const clampRange = (value, min, max) => {
+    const low = Math.min(min, max);
+    const high = Math.max(min, max);
+    return Math.min(Math.max(value, low), high);
+  };
+
+  const handleZoom = (deltaY, pointer) => {
+    const nextZoom = clamp(
+      zoomLevel * (deltaY > 0 ? 0.9 : 1.1),
+      MIN_ZOOM,
+      MAX_ZOOM
+    );
+
+    if (nextZoom === zoomLevel) {
+      return;
+    }
+
+    const nextWidth = 600 / nextZoom;
+    const nextHeight = 400 / nextZoom;
+
+    const localX = pointer ? pointer.x : viewBox.x + viewBox.width / 2;
+    const localY = pointer ? pointer.y : viewBox.y + viewBox.height / 2;
+    const relativeX = (localX - viewBox.x) / viewBox.width;
+    const relativeY = (localY - viewBox.y) / viewBox.height;
+
+    const nextX = clampRange(
+      localX - relativeX * nextWidth,
+      600 - nextWidth,
+      0
+    );
+    const nextY = clampRange(
+      localY - relativeY * nextHeight,
+      400 - nextHeight,
+      0
+    );
+
+    setZoomLevel(nextZoom);
+    setViewBox({ x: nextX, y: nextY, width: nextWidth, height: nextHeight });
+  };
+
+  const handlePan = (nextX, nextY) => {
+    setViewBox({
+      x: clampRange(nextX, 600 - viewBox.width, 0),
+      y: clampRange(nextY, 400 - viewBox.height, 0),
+      width: viewBox.width,
+      height: viewBox.height,
+    });
   };
 
   const handleUpdateSegment = (segmentIndex, cp1, cp2) => {
@@ -239,6 +253,11 @@ export default function App() {
     }
   };
 
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setViewBox({ x: 0, y: 0, width: 600, height: 400 });
+  };
+
   const pathD = generatePath(points, segments);
   const svgCode = exportSVG(pathD);
   const htmlCode = exportHTML(pathD);
@@ -253,6 +272,7 @@ export default function App() {
           <h3>Информация</h3>
           <p>Точек: {points.length}</p>
           <p>Режим: <strong>{mode === "line" ? "Линия" : "Безье"}</strong></p>
+          <p>Масштаб: <strong>{Math.round(zoomLevel * 100)}%</strong></p>
         </div>
 
         <button onClick={handleClearCanvas} className="clear-btn">
@@ -276,13 +296,19 @@ export default function App() {
             segments={segments}
             mode={mode}
             mousePos={mousePos}
+            viewBox={viewBox}
+            zoomLevel={zoomLevel}
             isCtrlPressed={isCtrlPressed}
-            isAltPressed={isAltPressed}
             isMouseDown={isMouseDown}
             onAddPoint={handleAddPoint}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onZoom={handleZoom}
+            onPan={handlePan}
+            onResetZoom={handleResetZoom}
+            onZoomIn={() => handleZoom(-1, { x: viewBox.x + viewBox.width / 2, y: viewBox.y + viewBox.height / 2 })}
+            onZoomOut={() => handleZoom(1, { x: viewBox.x + viewBox.width / 2, y: viewBox.y + viewBox.height / 2 })}
             onUpdateSegment={handleUpdateSegment}
             draggingPoint={draggingPoint}
           >

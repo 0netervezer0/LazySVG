@@ -197,6 +197,10 @@ body {
   align-items: center;
 }
 
+.canvas-inner {
+  position: relative;
+}
+
 .canvas-svg {
   border: 2px solid #ddd;
   border-radius: 4px;
@@ -204,6 +208,64 @@ body {
   cursor: crosshair;
   max-width: 100%;
   height: auto;
+}
+
+.canvas-overlay {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+}
+
+.zoom-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+  min-width: 40px;
+  text-align: center;
+}
+
+.zoom-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.zoom-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.zoom-btn.reset-btn {
+  width: 30px;
+}
+
+.zoom-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 170, 255, 0.2);
 }
 
 .point {
