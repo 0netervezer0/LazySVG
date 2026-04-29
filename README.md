@@ -19,9 +19,6 @@ npm install
 
 # Run the Dev Server
 npm run dev
-
-# Build for Production
-npm run build
 ```
 
 ## 📖 How to use
