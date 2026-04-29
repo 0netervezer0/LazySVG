@@ -1,133 +1,102 @@
-# 🎨 LazySVG - Интерактивный SVG редактор
+# 🎨 LazySVG - Interactive SVG Editor
+[Доступно на Русском 🇷🇺](README-RU.md)
 
-Простой и мощный веб-инструмент для создания векторных фигур с поддержкой кривых Безье.
+A simple web tool for creating vector shapes with support for Bézier curves.
 
-## ✨ Возможности
+## ✨ Features
 
-- **Режим Линии** - создание фигур из прямых линий
-- **Режим Безье** - создание гладких кривых с автоматическими контрольными точками
-- **Визуализация** - видимые точки и контрольные точки на холсте
-- **Сетка** - фоновая сетка для удобства позиционирования
-- **Экспорт** - копирование SVG и HTML кода для использования в проектах
-- **Интерактивный холст** - простой клик для добавления точек
+- **Line Mode** - Create shapes from straight lines
+- **Bezier Mode** - Create smooth curves with automatic control points
+- **Visualization** - Visible points and control points on the canvas
+- **Grid** - Background grid for easy positioning
+- **Export** - Copy SVG and HTML code for use in projects
+- **Interactive Canvas** - Add points with a simple click
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
 ```bash
-# Установка зависимостей
+# Install Dependencies
 npm install
 
-# Запуск dev сервера
+# Run the Dev Server
 npm run dev
-
-# Сборка для продакшена
-npm run build
 ```
 
-Откройте [http://localhost:5173](http://localhost:5173) в браузере.
+## 📖 How to use
 
-## 📖 Как использовать
+### Adding points
+1. Select the mode (Line or Bezier) on the left
+2. Click on a white area of ​​the canvas to add a point
+3. The points will be connected by lines or curves, depending on the selected mode
 
-### Добавление точек
-1. Выберите режим (Линия или Безье) слева
-2. Кликните на белую область холста, чтобы добавить точку
-3. Точки будут соединены линиями или кривыми в зависимости от выбранного режима
+### Line mode
+- Creates sharp angles between points
+- Ideal for simple geometric shapes
 
-### Режим Линии
-- Создаёт острые углы между точками
-- Идеален для простых геометрических фигур
+### Bezier mode
+- Automatically creates control points for smooth curves
+- Visually displays control points (blue and green circles)
+- Best for organic shapes and smooth curves
 
-### Режим Безье  
-- Автоматически создаёт контрольные точки для гладких кривых
-- Визуально показывает контрольные точки (голубые и зелёные кружки)
-- Лучше всего для органических форм и плавных кривых
+### Export
+1. Copy the SVG code from the "SVG Code" section
+2. Use the HTML code from the "HTML Code" section or paste the SVG into your project
 
-### Экспорт
-1. Скопируйте SVG код из раздела "SVG Код"
-2. Используйте HTML код из раздела "HTML Код" или вставьте SVG в свой проект
-
-## 🏗️ Архитектура
+## 🏗️ Architecture
 
 ```
 src/
-├── App.jsx                    # Главный компонент приложения
+├── App.jsx # Main Application Component
 ├── components/
-│   ├── Canvas.jsx             # SVG холст
-│   ├── Point.jsx              # Точка на холсте
-│   ├── Toolbar.jsx            # Выбор режима
-│   └── BezierControls.jsx     # Редактор контрольных точек
+│ ├── Canvas.jsx # SVG canvas
+│ ├── Point.jsx # Point on canvas
+│ ├── Toolbar.jsx # Mode selector
+│ └── BezierControls.jsx # Control point editor
 ├── hooks/
-│   └── useDrag.js             # Hook для перемещения элементов
+│ └── useDrag.js # Hook for dragging elements
 ├── store/
-│   └── shapeStore.js          # Хранилище состояния
+│ └── shapeStore.js # State store
 ├── utils/
-│   ├── pathGenerator.js       # Генератор SVG пути
-│   └── svgExport.js           # Экспорт SVG/HTML
-└── main.jsx                   # Точка входа
+│ ├── pathGenerator.js # SVG path generator
+│ └── svgExport.js # SVG/HTML Export
+└── main.jsx # Entry Point
 
 styles/
-└── global.css                 # Глобальные стили
+└── global.css # Global Styles
 ```
 
-## 🛠️ Технологический стек
+## 🛠️ Tech Stack
 
-- **React 19** - UI фреймворк
-- **Vite 8** - Сборка и dev сервер
-- **SVG** - Векторная графика
-- **CSS3** - Стилизация
+- **React 19** - UI Framework
+- **Vite 8** - Build and Dev Server
+- **SVG** - Vector Graphics
+- **CSS3** - Styling
 
-## 📝 Примеры использования
+## 📝 Usage Examples
 
-### Экспортированный SVG код
+### Exported SVG Code
 
-Вы можете скопировать SVG код и вставить его:
+You can copy the SVG code and paste it:
 
 ```html
 <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 152 252 C 212 252 192 102 252 102 ..." 
-        fill="none" stroke="black" stroke-width="2"/>
+  <path d="M" 152 252 C 212 252 192 102 252 102 ..."
+  fill="none" stroke="black" stroke-width="2"/>
 </svg>
 ```
 
-### Полная HTML страница
+### Full HTML Page
 
-Экспортируйте HTML файл с уже встроенным SVG и стилями для быстрого использования.
+Export an HTML file with embedded SVG and styles for quick use.
 
-## 🎯 Советы
+## 📱 Compatibility
 
-- Используйте сетку для точного позиционирования
-- В режиме Безье контрольные точки автоматически оптимизируются
-- Кликайте "Очистить", чтобы начать заново
-- Копируйте код и сразу используйте его в своих проектах
+- Works in modern browsers (Chrome, Firefox, Safari, Edge)
+- Supports touchscreens on mobile devices
+- Responsive design for various screen sizes
 
-## 📱 Совместимость
+## 📄 License
 
-- Работает в современных браузерах (Chrome, Firefox, Safari, Edge)
-- Поддерживает сенсорные экраны на мобильных устройствах
-- Адаптивный дизайн для различных размеров экрана
+[MIT License](LICENSE.txt)
 
-## 🐛 Известные ограничения
-
-- Контрольные точки пока только автоматические (редактирование требует использования формы)
-- Нет функции отмены (Undo/Redo)
-- Нет поддержки импорта существующего SVG
-- Нет цветовых фильтров для заливки и обводки (можно добавить свойства после экспорта)
-
-## 🚀 Возможные улучшения
-
-- [ ] Редактирование контрольных точек прямо на холсте
-- [ ] Функция Undo/Redo
-- [ ] Импорт SVG файлов
-- [ ] Цветовая палитра для заливки и обводки
-- [ ] Удаление отдельных точек
-- [ ] Перемещение точек на холсте
-- [ ] Экспорт в PNG/PDF
-- [ ] Предпросмотр в реальном времени
-
-## 📄 Лицензия
-
-
-
----
-
-Создано с ❤️ для вектор-дизайнеров!
+Created with ❤️ for vector designers!
