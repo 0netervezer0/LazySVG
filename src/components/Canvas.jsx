@@ -395,7 +395,7 @@ export default function Canvas({
               <path
                 d={tempPath}
                 stroke="#00cc00"
-                strokeWidth="1"
+                strokeWidth="2"
                 strokeDasharray="4"
                 fill="none"
                 pointerEvents="none"
