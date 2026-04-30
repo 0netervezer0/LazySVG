@@ -188,13 +188,12 @@ export default function Canvas({
           width="20"
           height="20"
           patternUnits="userSpaceOnUse"
-          patternTransform={`scale(${1/zoomLevel})`}
         >
           <path
             d="M 20 0 L 0 0 0 20"
             fill="none"
             stroke="#cccccc"
-            strokeWidth="1"
+            strokeWidth="2"
           />
         </pattern>
         <marker

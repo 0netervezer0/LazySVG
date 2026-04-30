@@ -25,8 +25,8 @@ export default function App() {
   const [strokeColor, setStrokeColor] = useState("#000000");
   const [fillEnabled, setFillEnabled] = useState(false);
   const lastUpdateRef = useRef(0);
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 4;
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 2;
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
   // Функции для работы с историей
