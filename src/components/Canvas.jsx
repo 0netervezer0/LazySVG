@@ -20,6 +20,10 @@ export default function Canvas({
   mousePos,
   viewBox,
   zoomLevel,
+  strokeWidth,
+  fillColor,
+  strokeColor,
+  fillEnabled,
   onAddPoint,
   onMouseMove,
   onMouseUp,
@@ -203,7 +207,7 @@ export default function Canvas({
       <rect width="600" height="400" fill="url(#grid)" />
 
       {/* Основной путь */}
-      <path d={d} fill="none" stroke="black" strokeWidth="2" />
+      <path d={d} fill={fillEnabled && points.length > 2 ? fillColor : "none"} stroke={strokeColor} strokeWidth={strokeWidth} />
 
       {/* Стрелки направления для Безье кривых */}
       {segments.map((segment, i) => {

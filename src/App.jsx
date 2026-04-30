@@ -20,6 +20,10 @@ export default function App() {
   const [copySuccess, setCopySuccess] = useState({ svg: false, html: false });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 600, height: 400 });
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [fillColor, setFillColor] = useState("#ffffff");
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [fillEnabled, setFillEnabled] = useState(false);
   const lastUpdateRef = useRef(0);
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 4;
@@ -259,14 +263,14 @@ export default function App() {
   };
 
   const pathD = generatePath(points, segments);
-  const svgCode = exportSVG(pathD);
-  const htmlCode = exportHTML(pathD);
+  const svgCode = exportSVG(pathD, strokeWidth, fillColor, strokeColor, fillEnabled, points.length);
+  const htmlCode = exportHTML(pathD, strokeWidth, fillColor, strokeColor, fillEnabled, points.length);
 
   return (
     <div className="app">
       <aside className="sidebar">
         <h2>LazySVG</h2>
-        <Toolbar mode={mode} setMode={setMode} />
+        <Toolbar mode={mode} setMode={setMode} strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} fillColor={fillColor} setFillColor={setFillColor} strokeColor={strokeColor} setStrokeColor={setStrokeColor} fillEnabled={fillEnabled} setFillEnabled={setFillEnabled} />
         
         <div className="info-section">
           <h3>Информация</h3>
@@ -298,6 +302,10 @@ export default function App() {
             mousePos={mousePos}
             viewBox={viewBox}
             zoomLevel={zoomLevel}
+            strokeWidth={strokeWidth}
+            fillColor={fillColor}
+            strokeColor={strokeColor}
+            fillEnabled={fillEnabled}
             isCtrlPressed={isCtrlPressed}
             isMouseDown={isMouseDown}
             onAddPoint={handleAddPoint}

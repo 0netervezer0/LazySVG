@@ -1,11 +1,12 @@
-export function exportSVG(pathD) {
+export function exportSVG(pathD, strokeWidth = 2, fillColor = "none", strokeColor = "black", fillEnabled = false, pointsLength = 0) {
+  const fill = fillEnabled && pointsLength > 2 ? fillColor : "none";
   return `<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-  <path d="${pathD}" fill="none" stroke="black" stroke-width="2"/>
+  <path d="${pathD}" fill="${fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
 </svg>`;
 }
 
-export function exportHTML(pathD) {
-  const svgContent = exportSVG(pathD);
+export function exportHTML(pathD, strokeWidth = 2, fillColor = "none", strokeColor = "black", fillEnabled = false, pointsLength = 0) {
+  const svgContent = exportSVG(pathD, strokeWidth, fillColor, strokeColor, fillEnabled, pointsLength);
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
