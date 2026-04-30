@@ -44,6 +44,7 @@ export default function Canvas({
   const [selectedSegment, setSelectedSegment] = React.useState(null);
   const [isPanning, setIsPanning] = React.useState(false);
   const [panStart, setPanStart] = React.useState(null);
+  const [localMousePos, setLocalMousePos] = React.useState(null);
   const lastUpdateRef = useRef(0);
 
   const toViewCoords = (e) => {
@@ -115,8 +116,8 @@ export default function Canvas({
       const rect = e.currentTarget.getBoundingClientRect();
       const deltaX = e.clientX - panStart.clientX;
       const deltaY = e.clientY - panStart.clientY;
-      const xOffset = (deltaX / rect.width) * panStart.viewBox.width;
-      const yOffset = (deltaY / rect.height) * panStart.viewBox.height;
+      const xOffset = (deltaX / rect.width) * viewBox.width;
+      const yOffset = (deltaY / rect.height) * viewBox.height;
       const nextX = panStart.viewBox.x - xOffset;
       const nextY = panStart.viewBox.y - yOffset;
       onPan(nextX, nextY);
@@ -125,6 +126,7 @@ export default function Canvas({
 
     const svgPoint = toViewCoords(e);
     onMouseMove(svgPoint);
+    setLocalMousePos(svgPoint);
     
     // Обработка перетаскивания контрольных точек Безье
     if (draggingControlPoint && mode === "bezier") {
@@ -174,6 +176,7 @@ export default function Canvas({
           setDraggingControlPoint(null);
           setIsPanning(false);
           setPanStart(null);
+          setLocalMousePos(null);
           onMouseLeave(e);
         }}
         className="canvas-svg"
@@ -185,12 +188,13 @@ export default function Canvas({
           width="20"
           height="20"
           patternUnits="userSpaceOnUse"
+          patternTransform={`scale(${1/zoomLevel})`}
         >
           <path
             d="M 20 0 L 0 0 0 20"
             fill="none"
-            stroke="#e0e0e0"
-            strokeWidth="0.5"
+            stroke="#cccccc"
+            strokeWidth="1"
           />
         </pattern>
         <marker
@@ -407,6 +411,11 @@ export default function Canvas({
       </svg>
       <div className="canvas-overlay">
         <div className="zoom-status">{Math.round(zoomLevel * 100)}%</div>
+        {localMousePos && (
+          <div className="mouse-coords">
+            {Math.round(localMousePos.x)}, {Math.round(localMousePos.y)}
+          </div>
+        )}
         <div className="zoom-buttons">
           <button type="button" onClick={onZoomIn} className="zoom-btn" aria-label="Zoom in">+</button>
           <button type="button" onClick={onZoomOut} className="zoom-btn" aria-label="Zoom out">−</button>

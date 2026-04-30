@@ -318,6 +318,17 @@ body {
   text-align: center;
 }
 
+.mouse-coords {
+  font-size: 11px;
+  color: #666;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 60px;
+  text-align: center;
+}
+
 .zoom-buttons {
   display: flex;
   gap: 6px;
